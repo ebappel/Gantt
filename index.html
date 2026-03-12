@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zego Integration — Implementation Gantt Chart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-left">
+      <svg class="logo" width="32" height="32" viewBox="0 0 32 32" fill="none" aria-label="Zego Integration">
+        <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M9 11h14M9 16h10M9 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <rect x="21" y="14" width="4" height="4" rx="1" fill="currentColor" opacity="0.4"/>
+      </svg>
+      <div>
+        <h1>Zego Integration</h1>
+        <p class="subtitle">90-Day Implementation Timeline</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="legend">
+        <span class="legend-item"><span class="dot dot-sales"></span>Sales</span>
+        <span class="legend-item"><span class="dot dot-contract"></span>Contracting</span>
+        <span class="legend-item"><span class="dot dot-rm"></span>RM Impl.</span>
+        <span class="legend-item"><span class="dot dot-zego"></span>Zego</span>
+        <span class="legend-item"><span class="dot dot-milestone"></span>Milestone</span>
+      </div>
+      <button data-theme-toggle aria-label="Switch to dark mode">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="controls">
+    <div class="controls-left">
+      <div class="phase-filters">
+        <button class="filter-btn active" data-filter="all">All Phases</button>
+        <button class="filter-btn" data-filter="sales">Sales</button>
+        <button class="filter-btn" data-filter="contract">Contracting</button>
+        <button class="filter-btn" data-filter="rm">RM Impl.</button>
+        <button class="filter-btn" data-filter="zego">Zego</button>
+      </div>
+      <button class="btn btn-add" id="addTaskBtn" title="Add Task">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Task
+      </button>
+    </div>
+    <div class="summary-pills">
+      <span class="pill">Total: 90 days</span>
+      <span class="pill pill-target">ePay Target: Day 45–60</span>
+      <span class="pill pill-golive">Go-Live: Day 60</span>
+    </div>
+  </div>
+
+  <div class="gantt-wrapper">
+    <div class="gantt-container" id="ganttChart"></div>
+  </div>
+
+  <section class="details-panel" id="detailsPanel">
+    <div class="details-content" id="detailsContent">
+      <p class="details-hint">Click on any task bar for details. Drag bars to reschedule. Drag edges to resize.</p>
+    </div>
+  </section>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="editModal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Edit Task</h2>
+        <button class="modal-close" id="modalClose" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="editForm" autocomplete="off">
+        <div class="form-row">
+          <div class="form-group form-group-wide">
+            <label for="editLabel">Task Name</label>
+            <input type="text" id="editLabel" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editPhase">Phase</label>
+            <select id="editPhase">
+              <option value="sales">Sales</option>
+              <option value="contract">Contracting</option>
+              <option value="rm">RM Implementation</option>
+              <option value="zego">Zego Process</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="editType">Display Type</label>
+            <select id="editType">
+              <option value="sales">Sales Bar</option>
+              <option value="contract">Contract Bar</option>
+              <option value="rm">RM Bar</option>
+              <option value="zego">Zego Bar</option>
+              <option value="milestone">Milestone Diamond</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editStart">Start Day</label>
+            <input type="number" id="editStart" min="1" max="92" required>
+          </div>
+          <div class="form-group">
+            <label for="editEnd">End Day</label>
+            <input type="number" id="editEnd" min="1" max="92" required>
+          </div>
+          <div class="form-group">
+            <label for="editBadge">Badge Text</label>
+            <input type="text" id="editBadge" placeholder="e.g. <14 Days">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group form-group-wide">
+            <label for="editDesc">Description</label>
+            <textarea id="editDesc" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group form-group-wide">
+            <label for="editDetails">Detail Bullets (one per line)</label>
+            <textarea id="editDetails" rows="3" placeholder="One bullet point per line"></textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-danger" id="deleteTaskBtn">Delete Task</button>
+          <div class="modal-actions-right">
+            <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+</footer>
+
+<script src="./app.js"></script>
+</body>
+</html>
