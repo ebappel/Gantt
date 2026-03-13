@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gantt Chart Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<!-- ===== Auth Bar ===== -->
+<div class="auth-bar" id="authBar">
+  <div class="auth-bar-inner">
+    <div class="auth-status" id="authStatus">
+      <span class="auth-loading">Loading...</span>
+    </div>
+    <div class="auth-actions" id="authActions"></div>
+  </div>
+</div>
+
+<!-- ===== Top Bar: Chart Switcher ===== -->
+<div class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-left">
+      <svg class="logo" width="28" height="28" viewBox="0 0 32 32" fill="none" aria-label="Gantt Chart">
+        <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M9 11h14M9 16h10M9 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <rect x="21" y="14" width="4" height="4" rx="1" fill="currentColor" opacity="0.4"/>
+      </svg>
+      <span class="topbar-brand">Gantt Charts</span>
+    </div>
+    <div class="chart-tabs" id="chartTabs"></div>
+    <div class="topbar-actions">
+      <button class="btn-icon" id="newChartBtn" title="New Chart" style="display:none">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="btn-icon" data-theme-toggle aria-label="Switch to dark mode">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Chart Header ===== -->
+<header id="chartHeader">
+  <div class="header-inner">
+    <div class="header-left">
+      <h1 id="chartTitle" class="editable-title" contenteditable="false"></h1>
+      <button class="btn-icon btn-icon-sm" id="editTitleBtn" title="Rename chart" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <p class="subtitle" id="chartSubtitle"></p>
+    </div>
+    <div class="header-right">
+      <div class="legend" id="legendContainer"></div>
+      <div class="chart-actions" id="chartActionsContainer" style="display:none">
+        <button class="btn btn-sm btn-outline" id="duplicateChartBtn" title="Duplicate this chart as a template">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Duplicate
+        </button>
+        <button class="btn btn-sm btn-outline btn-danger-outline" id="deleteChartBtn" title="Delete this chart">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ===== Controls ===== -->
+  <div class="controls">
+    <div class="controls-left">
+      <div class="phase-filters" id="phaseFilters"></div>
+      <button class="btn btn-add" id="addTaskBtn" title="Add Task" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Task
+      </button>
+      <button class="btn btn-phase-mgmt" id="managePhasesBtn" title="Manage Phases" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Phases
+      </button>
+    </div>
+    <div class="summary-pills" id="summaryPills"></div>
+  </div>
+
+  <!-- ===== Gantt Chart ===== -->
+  <div class="gantt-wrapper">
+    <div class="gantt-container" id="ganttChart"></div>
+  </div>
+
+  <!-- ===== Details Panel ===== -->
+  <section class="details-panel" id="detailsPanel">
+    <div class="details-content" id="detailsContent">
+      <p class="details-hint">Click on any task bar for details. Drag bars to reschedule. Drag edges to resize.</p>
+    </div>
+  </section>
+</main>
+
+<!-- ===== Task Edit Modal ===== -->
+<div class="modal-overlay" id="taskModalOverlay">
+  <div class="modal" id="taskModal">
+    <div class="modal-header">
+      <h2 id="taskModalTitle">Edit Task</h2>
+      <button class="modal-close" id="taskModalClose" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <form id="taskForm" autocomplete="off">
+      <div class="form-row">
+        <div class="form-group form-group-wide">
+          <label for="editLabel">Task Name</label>
+          <input type="text" id="editLabel" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="editPhase">Phase</label>
+          <select id="editPhase"></select>
+        </div>
+        <div class="form-group">
+          <label for="editType">Display Type</label>
+          <select id="editType"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="editStart">Start Day</label>
+          <input type="number" id="editStart" min="1" max="365" required>
+        </div>
+        <div class="form-group">
+          <label for="editEnd">End Day</label>
+          <input type="number" id="editEnd" min="1" max="365" required>
+        </div>
+        <div class="form-group">
+          <label for="editBadge">Badge Text</label>
+          <input type="text" id="editBadge" placeholder="e.g. <14 Days">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group form-group-wide">
+          <label for="editDesc">Description</label>
+          <textarea id="editDesc" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group form-group-wide">
+          <label for="editDetails">Detail Bullets (one per line)</label>
+          <textarea id="editDetails" rows="3" placeholder="One bullet point per line"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="deleteTaskBtn">Delete Task</button>
+        <div class="modal-actions-right">
+          <button type="button" class="btn btn-secondary" id="taskCancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Phase Manager Modal ===== -->
+<div class="modal-overlay" id="phaseModalOverlay">
+  <div class="modal modal-wide" id="phaseModal">
+    <div class="modal-header">
+      <h2>Manage Phases</h2>
+      <button class="modal-close" id="phaseModalClose" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="phase-manager-body" id="phaseManagerBody"></div>
+    <div class="phase-add-row">
+      <input type="text" id="newPhaseName" placeholder="New phase name..." class="phase-input">
+      <input type="color" id="newPhaseColor" value="#6366f1" class="phase-color-input" title="Pick color">
+      <button class="btn btn-primary btn-sm" id="addPhaseBtn">Add Phase</button>
+    </div>
+    <div class="modal-actions" style="border-top:1px solid var(--color-divider); margin-top:var(--space-4); padding-top:var(--space-4)">
+      <div></div>
+      <button class="btn btn-secondary" id="phaseModalDone">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== New/Rename Chart Modal ===== -->
+<div class="modal-overlay" id="chartModalOverlay">
+  <div class="modal modal-narrow">
+    <div class="modal-header">
+      <h2 id="chartModalTitle">New Chart</h2>
+      <button class="modal-close" id="chartModalClose" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <form id="chartForm" autocomplete="off">
+      <div class="form-row">
+        <div class="form-group form-group-wide">
+          <label for="chartNameInput">Chart Name</label>
+          <input type="text" id="chartNameInput" required placeholder="e.g. PayLease Integration">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group form-group-wide">
+          <label for="chartSubInput">Subtitle</label>
+          <input type="text" id="chartSubInput" placeholder="e.g. 90-Day Implementation Timeline">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="chartDaysInput">Total Days</label>
+          <input type="number" id="chartDaysInput" min="7" max="365" value="90">
+        </div>
+        <div class="form-group">
+          <label for="chartTemplateSelect">Start From</label>
+          <select id="chartTemplateSelect">
+            <option value="blank">Blank Chart</option>
+            <option value="zego">Zego Template</option>
+            <option value="amrent">AmRent Template</option>
+            <option value="avidxchange">AvidXchange Template</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <div></div>
+        <div class="modal-actions-right">
+          <button type="button" class="btn btn-secondary" id="chartCancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Roles Manager Modal (Admin only) ===== -->
+<div class="modal-overlay" id="rolesModalOverlay">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h2>Manage Team Access</h2>
+      <button class="modal-close" id="rolesModalClose" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="roles-body" id="rolesBody"></div>
+    <div class="phase-add-row" style="padding:var(--space-2) var(--space-5) var(--space-5)">
+      <input type="email" id="newUserEmail" placeholder="colleague@company.com" class="phase-input">
+      <select id="newUserRole" class="phase-input" style="flex:0 0 auto; width:110px">
+        <option value="editor">Editor</option>
+        <option value="viewer">Viewer</option>
+      </select>
+      <button class="btn btn-primary btn-sm" id="addUserBtn">Add</button>
+    </div>
+    <div class="modal-actions" style="border-top:1px solid var(--color-divider); margin-top:var(--space-4); padding-top:var(--space-4); padding-left:var(--space-5); padding-right:var(--space-5); padding-bottom:var(--space-4)">
+      <div></div>
+      <button class="btn btn-secondary" id="rolesModalDone">Done</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+</footer>
+
+<script type="importmap">
+{
+  "imports": {
+    "firebase/app": "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js"
+  }
+}
+</script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
