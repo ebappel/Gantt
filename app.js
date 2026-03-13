@@ -72,6 +72,141 @@ function zegoTemplate() {
   };
 }
 
+// ── AmRent template ────────────────────────────────────────
+function amrentTemplate() {
+  return {
+    phases: [
+      { id:"lead", name:"Lead & Qualification", color:"#3b82f6" },
+      { id:"contract", name:"Contracting", color:"#8b5cf6" },
+      { id:"credential", name:"Credentialing", color:"#f59e0b" },
+      { id:"setup", name:"Setup & Activation", color:"#10b981" },
+      { id:"milestone", name:"Milestone", color:"#ef4444" }
+    ],
+    tasks: [
+      // ── Phase 1: Lead & Qualification ──
+      { id:uid(), label:"Lead & Qualification", phase:"lead", isHeader:true },
+      { id:uid(), label:"1. Lead Received & Outreach", phase:"lead", type:"lead", start:1, end:2, badge:"Days 1–2",
+        description:"Lead arrives via email/call. Sales reviews source and determines access path.",
+        details:["Inside Sales: < 500 units","Outside Sales: 501+ units","Email sent to confirm availability for intro call","Rent Manager rep copied if lead from RM","Follow-up calls begin if no response in 3–5 days"] },
+      { id:uid(), label:"2. Intro Call & Qualification", phase:"lead", type:"lead", start:2, end:4, badge:"Days 2–4",
+        description:"Intro call/meeting to understand portfolio size, locations, and screening needs.",
+        details:["Outside Sales may provide demo","Confirm appropriate product path based on laws/regulations","Lead details recorded in Salesforce"] },
+      { id:uid(), label:"3. Proposal/Quote Sent", phase:"lead", type:"lead", start:4, end:5, badge:"Days 4–5",
+        description:"Proposal or quote is sent based on qualification." },
+      { id:uid(), label:"4. Opportunity Created", phase:"lead", type:"lead", start:5, end:7, badge:"Days 5–7",
+        description:"Lead becomes a formal Opportunity once productive conversation occurs.",
+        details:["Notes, activities, and RM documents tracked","Follow-up calls/emails as needed"] },
+
+      // ── Phase 2: Contracting ──
+      { id:uid(), label:"Contracting", phase:"contract", isHeader:true },
+      { id:uid(), label:"5. Contract Packet Sent (DocuSign)", phase:"contract", type:"contract", start:7, end:9, badge:"Days 7–9",
+        description:"Customer receives full contract packet via DocuSign.",
+        details:["New Customer Checklist","Application for Services","Master Agreement","ACH Form","Principal ID & required forms"] },
+      { id:uid(), label:"6. Customer Signs & Returns Docs", phase:"contract", type:"contract", start:9, end:16, badge:"Days 9–16",
+        description:"All documents must be completed and signed by owner/principal.",
+        details:["Supporting documents provided","Can take days to weeks depending on availability","Outside Sales schedules resident selection criteria review"] },
+
+      // ── Phase 3: Credentialing ──
+      { id:uid(), label:"Credentialing", phase:"credential", isHeader:true },
+      { id:uid(), label:"7. Credentialing Review", phase:"credential", type:"credential", start:16, end:23, badge:"Days 16–23",
+        description:"AmRent Credentialing reviews completed contract packet.",
+        details:["Review for Red Flags","May request additional documentation or corrections","Schedule office inspection","Communicate required steps to Sales"] },
+      { id:uid(), label:"8. Red Flags Resolution", phase:"credential", type:"credential", start:20, end:27, badge:"Days 20–27",
+        description:"If issues identified, customer receives Red Flags List.",
+        details:["Sales tracks progress until resolved","Minor items: same day","Complex cases: 1–2+ weeks"] },
+      { id:uid(), label:"9. Credentialing Approved", phase:"credential", type:"milestone", start:27, end:27, isMilestone:true, milestoneType:"credential", badge:"Day 27",
+        description:"Credentialing clears the customer. Account sent to Setups team." },
+
+      // ── Phase 4: Setup & Activation ──
+      { id:uid(), label:"Setup & Activation", phase:"setup", isHeader:true },
+      { id:uid(), label:"10. Account Setup & Integration", phase:"setup", type:"setup", start:27, end:34, badge:"Days 27–34",
+        description:"Setup team activates the account. For RM customers: integration access established.",
+        details:["Customer receives 'Setup Submitted' email","RM integration configured","Inside Sales: confirmation & onboarding info sent","Outside Sales: meeting scheduled for RM settings"] },
+      { id:uid(), label:"11. Training & Handoff", phase:"setup", type:"setup", start:32, end:38, badge:"Days 32–38",
+        description:"Training meeting with all users who will access screenings.",
+        details:["Training materials & resources distributed","Inside Sales → Account Management (immediate)","Outside Sales → Client Relationship Manager (30 days)"] },
+
+      // ── Milestones ──
+      { id:uid(), label:"Milestones", phase:"milestone", isHeader:true },
+      { id:uid(), label:"Customer Go-Live", phase:"setup", type:"milestone", start:35, end:35, isMilestone:true, milestoneType:"setup", badge:"Day 35",
+        description:"AmRent account fully activated, integrated, and customer is live." },
+      { id:uid(), label:"Account Transition Complete", phase:"setup", type:"milestone", start:42, end:42, isMilestone:true, milestoneType:"setup", badge:"Day 42",
+        description:"Ownership transitioned from Sales to Account Management / CRM." }
+    ]
+  };
+}
+
+// ── AvidXchange template ─────────────────────────────────
+function avidxchangeTemplate() {
+  return {
+    phases: [
+      { id:"leadsub", name:"Lead Submission & Qualification", color:"#3b82f6" },
+      { id:"demo", name:"Sales Demo & Routing", color:"#6366f1" },
+      { id:"compliance", name:"Compliance & Order Form", color:"#8b5cf6" },
+      { id:"readiness", name:"Customer Readiness & Kickoff", color:"#f59e0b" },
+      { id:"implprep", name:"Implementation Prep", color:"#f97316" },
+      { id:"impl", name:"Implementation", color:"#10b981" },
+      { id:"milestone", name:"Milestone", color:"#ef4444" }
+    ],
+    tasks: [
+      // ── Phase 1: Lead Submission & Qualification ──
+      { id:uid(), label:"Lead Submission & Qualification", phase:"leadsub", isHeader:true },
+      { id:uid(), label:"1. RM Sends Lead to SDR", phase:"leadsub", type:"leadsub", start:1, end:2, badge:"Days 1–2",
+        description:"Rent Manager team sends qualified leads to the AvidXchange SDR team.",
+        details:["SDR contacts lead to qualify opportunity","Qualification questions cover accounting system, invoice volume, payment methods","Pain points in current AP process identified"] },
+      { id:uid(), label:"2. SDR Qualifies & Schedules Demo", phase:"leadsub", type:"leadsub", start:2, end:3, badge:"Days 2–3",
+        description:"SDR qualifies the opportunity and schedules a meeting with AvidXchange sales.",
+        details:["Availability gathered for 20–30 minute Teams meeting","Monthly invoice & payment volumes confirmed","International payment needs assessed"] },
+
+      // ── Phase 2: Sales Demo & Opportunity Routing ──
+      { id:uid(), label:"Sales Demo & Routing", phase:"demo", isHeader:true },
+      { id:uid(), label:"3. Sales Demo", phase:"demo", type:"demo", start:3, end:5, badge:"Days 3–5",
+        description:"25–30 minute demo covering AvidXchange AP Automation and AvidPay platform.",
+        details:["0–500 payments/month → Kendyl","500+ payments/month → Craig","Covers AP Automation & AvidPay Network"] },
+
+      // ── Phase 3: Compliance & Order Form ──
+      { id:uid(), label:"Compliance & Order Form", phase:"compliance", isHeader:true },
+      { id:uid(), label:"4. Compliance Docs Sent", phase:"compliance", type:"compliance", start:5, end:6, badge:"Day 5–6",
+        description:"Compliance documents sent to customer. AvidXchange gathers total expected monthly transactions." },
+      { id:uid(), label:"5. Customer Returns Compliance Forms", phase:"compliance", type:"compliance", start:6, end:12, badge:"Days 6–12",
+        description:"Customers typically return compliance forms within 2–7 days.",
+        details:["All required compliance documents completed","Timeline depends on customer responsiveness"] },
+      { id:uid(), label:"6. KYC Review & Order Form", phase:"compliance", type:"compliance", start:12, end:13, badge:"Days 12–13",
+        description:"KYC (Know Your Customer) review finalized. Order Form issued within 24 hours." },
+
+      // ── Phase 4: Customer Readiness & Implementation Kickoff ──
+      { id:uid(), label:"Customer Readiness & Kickoff", phase:"readiness", isHeader:true },
+      { id:uid(), label:"7. Customer Readiness Outreach", phase:"readiness", type:"readiness", start:13, end:15, badge:"Days 13–15",
+        description:"Customer Readiness Team reaches out within 2 business days.",
+        details:["Initial onboarding information collected"] },
+      { id:uid(), label:"8. Project Team Assigned", phase:"readiness", type:"readiness", start:15, end:17, badge:"Days 15–17",
+        description:"Implementation project team assigned within 2 business days." },
+      { id:uid(), label:"9. Onboarding / Welcome Call", phase:"readiness", type:"readiness", start:17, end:19, badge:"Days 17–19",
+        description:"Project team schedules the onboarding / welcome call within 2 business days." },
+
+      // ── Phase 5: Implementation Preparation ──
+      { id:uid(), label:"Implementation Prep", phase:"implprep", isHeader:true },
+      { id:uid(), label:"10. Data & System Preparation", phase:"implprep", type:"implprep", start:19, end:24, badge:"Days 19–24",
+        description:"Customer prepares required data and systems for implementation.",
+        details:["Vendor list with complete address info, no duplicates","Chart of Accounts updated and finalized","Active bank accounts available in accounting system","Customer actively processing transactions for correct data import"] },
+
+      // ── Phase 6: Implementation Process ──
+      { id:uid(), label:"Implementation", phase:"impl", isHeader:true },
+      { id:uid(), label:"11. Implementation & Weekly Calls", phase:"impl", type:"impl", start:24, end:42, badge:"Days 24–42",
+        description:"Target Go-Live date agreed upon. Weekly project calls to review progress.",
+        details:["~2 hours/week customer commitment","Deliverables: vendor lists, chart of accounts, payment history, bank account lists","Weekly project calls held to review progress & next steps","Project updates and communication occur weekly"] },
+
+      // ── Milestones ──
+      { id:uid(), label:"Milestones", phase:"milestone", isHeader:true },
+      { id:uid(), label:"System Go-Live", phase:"impl", type:"milestone", start:42, end:42, isMilestone:true, milestoneType:"impl", badge:"Day 42",
+        description:"AvidXchange system configured and active. Invoices processing, payments sent through AvidPay Network.",
+        details:["Invoices processed & approved through AvidXchange","Payments sent through AvidPay Network","End users trained and proficient"] },
+      { id:uid(), label:"End User Training Complete", phase:"impl", type:"milestone", start:45, end:45, isMilestone:true, milestoneType:"impl", badge:"Day 45",
+        description:"All end users trained and proficient using the AvidXchange system." }
+    ]
+  };
+}
+
 function blankTemplate() { return { phases:[], tasks:[] }; }
 
 // ── State ──────────────────────────────────────────────────
@@ -578,7 +713,7 @@ chartForm.addEventListener("submit", async (e) => {
     newChart.tasks.forEach(t => { t.id = uid(); });
   } else {
     const tmpl = document.getElementById("chartTemplateSelect").value;
-    const data = tmpl === "zego" ? zegoTemplate() : blankTemplate();
+    const data = tmpl === "zego" ? zegoTemplate() : tmpl === "amrent" ? amrentTemplate() : tmpl === "avidxchange" ? avidxchangeTemplate() : blankTemplate();
     newChart = { id:newId, name, subtitle:sub, totalDays:days+2, ...data };
   }
 
@@ -705,16 +840,23 @@ document.addEventListener("keydown", (e) => {
 (function(){const t=document.querySelector("[data-theme-toggle]"),r=document.documentElement;let d=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";r.setAttribute("data-theme",d);upd();t&&t.addEventListener("click",()=>{d=d==="dark"?"light":"dark";r.setAttribute("data-theme",d);upd();if(C())renderGantt();});function upd(){if(!t)return;t.innerHTML=d==="dark"?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';}})();
 
 // ── Init ───────────────────────────────────────────────────
-setOnAuthUpdate((user, role) => {
+setOnAuthUpdate(async (user, role) => {
   renderAuthBar();
   // Re-render to show/hide edit controls
   if (charts.length > 0) renderAll();
+  // If user just signed in and DB is empty, seed default data
+  if (user && charts.length === 0) {
+    await seedDefaultIfEmpty(zegoTemplate, uid);
+  }
 });
 
 // Wait for auth, then seed data + subscribe
 authReady.then(async () => {
   renderAuthBar();
-  await seedDefaultIfEmpty(zegoTemplate, uid);
+  // Only seed if signed in (needs write permission)
+  if (getUser()) {
+    await seedDefaultIfEmpty(zegoTemplate, uid);
+  }
   subscribeToCharts((updatedCharts) => {
     charts = updatedCharts;
     if (!activeChartId || !charts.find(c => c.id === activeChartId)) {
@@ -722,5 +864,9 @@ authReady.then(async () => {
       currentFilter = "all";
     }
     renderAll();
+    // If user just signed in and DB is still empty, seed now
+    if (getUser() && charts.length === 0) {
+      seedDefaultIfEmpty(zegoTemplate, uid);
+    }
   });
 });

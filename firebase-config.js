@@ -11,14 +11,13 @@
 //    5. Copy the values below
 // ============================================================
 
- // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyBGESwWcdrdp36N5zn_wzJl0CukTYwryh0",
-    authDomain: "rent-manager-gantt-charts.firebaseapp.com",
-    projectId: "rent-manager-gantt-charts",
-    storageBucket: "rent-manager-gantt-charts.firebasestorage.app",
-    messagingSenderId: "116184662161",
-    appId: "1:116184662161:web:e400562204eed433cbbf30"
-  };
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
 
 export default firebaseConfig;
