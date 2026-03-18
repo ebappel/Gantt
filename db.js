@@ -7,7 +7,7 @@ import firebaseConfig from './firebase-config.js';
 
 // Firebase SDK (loaded via importmap in index.html)
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, getDocs, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 // ── Init ──────────────────────────────────────────────────
@@ -39,6 +39,11 @@ onAuthStateChanged(auth, async (user) => {
   authReadyResolve();
 });
 
+// Handle redirect result (when signInWithRedirect was used)
+getRedirectResult(auth).catch(e => {
+  console.error('Redirect sign-in error:', e);
+});
+
 async function loadUserRole(user) {
   const roleDoc = await getDoc(doc(db, 'roles', user.email));
   if (roleDoc.exists()) {
@@ -60,8 +65,18 @@ async function loadUserRole(user) {
   }
 }
 
-function signIn() {
-  return signInWithPopup(auth, provider);
+async function signIn() {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (e) {
+    // If popup blocked or closed, fall back to redirect
+    if (e.code === 'auth/popup-blocked' ||
+        e.code === 'auth/popup-closed-by-user' ||
+        e.code === 'auth/cancelled-popup-request') {
+      return signInWithRedirect(auth, provider);
+    }
+    throw e;
+  }
 }
 
 function logOut() {
