@@ -239,23 +239,17 @@ function renderAuthBar() {
     actionsEl.innerHTML = `<button class="btn btn-sm btn-primary" id="signInBtn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       Sign in with Google</button>`;
-    document.getElementById("signInBtn").addEventListener("click", async () => {
+    document.getElementById("signInBtn").addEventListener("click", () => {
       const btn = document.getElementById("signInBtn");
-      btn.disabled = true; btn.textContent = "Signing in...";
-      try {
-        await signIn();
-      } catch(e) {
+      btn.disabled = true; btn.textContent = "Redirecting to Google...";
+      signIn().catch(e => {
         console.error("Sign-in error:", e);
-        // Show helpful message for auth domain issues
         if (e.code === 'auth/unauthorized-domain') {
-          alert("This domain is not authorized for sign-in. Go to Firebase Console → Authentication → Settings → Authorized domains and add: " + window.location.hostname);
+          alert("This domain is not authorized for sign-in.\n\nGo to Firebase Console → Authentication → Settings → Authorized domains and add:\n" + window.location.hostname);
         }
-      } finally {
-        if (document.getElementById("signInBtn")) {
-          btn.disabled = false;
-          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign in with Google';
-        }
-      }
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign in with Google';
+      });
     });
   } else {
     const roleBadge = role === 'admin' ? 'Admin' : role === 'editor' ? 'Editor' : 'Viewer';

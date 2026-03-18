@@ -7,7 +7,7 @@ import firebaseConfig from './firebase-config.js';
 
 // Firebase SDK (loaded via importmap in index.html)
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, getDocs, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 // ── Init ──────────────────────────────────────────────────
@@ -65,18 +65,10 @@ async function loadUserRole(user) {
   }
 }
 
-async function signIn() {
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (e) {
-    // If popup blocked or closed, fall back to redirect
-    if (e.code === 'auth/popup-blocked' ||
-        e.code === 'auth/popup-closed-by-user' ||
-        e.code === 'auth/cancelled-popup-request') {
-      return signInWithRedirect(auth, provider);
-    }
-    throw e;
-  }
+function signIn() {
+  // Use redirect-based sign-in — more reliable on hosted domains
+  // (popup sign-in is unreliable on GitHub Pages and many browsers)
+  return signInWithRedirect(auth, provider);
 }
 
 function logOut() {
