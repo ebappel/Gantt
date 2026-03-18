@@ -168,6 +168,22 @@ async function removeUser(email) {
   await deleteDoc(doc(db, 'roles', email));
 }
 
+// ── Chart Access (per-user) ───────────────────────────────
+async function getUserChartAccess(email) {
+  const roleDoc = await getDoc(doc(db, 'roles', email));
+  if (roleDoc.exists()) {
+    return roleDoc.data().chartAccess || [];
+  }
+  return [];
+}
+
+async function setUserChartAccess(email, chartIds) {
+  if (userRole !== 'admin') return;
+  await setDoc(doc(db, 'roles', email), {
+    chartAccess: chartIds
+  }, { merge: true });
+}
+
 // ── Public API ────────────────────────────────────────────
 export {
   authReady,
@@ -186,6 +202,8 @@ export {
   getAllRoles,
   setUserRole,
   removeUser,
+  getUserChartAccess,
+  setUserChartAccess,
   onAuthUpdate
 };
 

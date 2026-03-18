@@ -7,7 +7,7 @@ import {
   authReady, signIn, logOut, getUser, getRole, canEdit, isAdmin,
   subscribeToCharts, saveChart, createChart, deleteChart,
   seedDefaultIfEmpty, getAllRoles, setUserRole, removeUser,
-  setOnAuthUpdate
+  setOnAuthUpdate, getUserChartAccess, setUserChartAccess
 } from './db.js';
 
 let nextId = Date.now();
@@ -276,6 +276,7 @@ function updateEditVisibility() {
   document.getElementById("addTaskBtn").style.display = editable ? "" : "none";
   document.getElementById("managePhasesBtn").style.display = editable ? "" : "none";
   document.getElementById("chartActionsContainer").style.display = editable ? "" : "none";
+  document.getElementById("deleteChartBtn").style.display = isAdmin() ? "" : "none";
   // Hide edit pencils on rows
   document.querySelectorAll(".row-edit-btn").forEach(b => b.style.display = editable ? "" : "none");
 }
@@ -301,24 +302,11 @@ function renderChartTabs() {
     const nameSpan = document.createElement("span");
     nameSpan.textContent = c.name;
     tab.appendChild(nameSpan);
-    tab.addEventListener("click", (e) => {
-      if (e.target.closest(".tab-close")) return;
+    tab.addEventListener("click", () => {
       activeChartId = c.id;
       currentFilter = "all";
       renderAll();
     });
-    // Close button (if more than 1 chart AND user can edit)
-    if (charts.length > 1 && canEdit()) {
-      const close = document.createElement("span");
-      close.className = "tab-close";
-      close.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-      close.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        if (!confirm("Delete chart \"" + c.name + "\"?")) return;
-        await deleteChart(c.id);
-      });
-      tab.appendChild(close);
-    }
     container.appendChild(tab);
   });
 }
@@ -620,8 +608,22 @@ function closePhaseManager() { phaseOverlay.classList.remove("open"); renderAll(
 
 function renderPhaseList() {
   const c = C(); const body = document.getElementById("phaseManagerBody"); body.innerHTML = "";
-  c.phases.forEach(p => {
+  c.phases.forEach((p, idx) => {
     const row = document.createElement("div"); row.className = "phase-row";
+
+    // Reorder arrows
+    const arrows = document.createElement("div"); arrows.className = "phase-arrows";
+    const upBtn = document.createElement("button"); upBtn.className = "phase-arrow-btn"; upBtn.title = "Move up";
+    upBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>';
+    upBtn.disabled = idx === 0;
+    upBtn.addEventListener("click", () => { swapPhases(c, idx, idx - 1); renderPhaseList(); });
+    const downBtn = document.createElement("button"); downBtn.className = "phase-arrow-btn"; downBtn.title = "Move down";
+    downBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>';
+    downBtn.disabled = idx === c.phases.length - 1;
+    downBtn.addEventListener("click", () => { swapPhases(c, idx, idx + 1); renderPhaseList(); });
+    arrows.appendChild(upBtn); arrows.appendChild(downBtn);
+    row.appendChild(arrows);
+
     const swatch = document.createElement("div"); swatch.className = "phase-swatch"; swatch.style.background = p.color;
     const colorInput = document.createElement("input"); colorInput.type = "color"; colorInput.value = p.color;
     colorInput.addEventListener("input", (e) => { p.color = e.target.value; swatch.style.background = p.color; });
@@ -646,6 +648,23 @@ function renderPhaseList() {
     row.appendChild(del);
     body.appendChild(row);
   });
+}
+
+function swapPhases(chart, fromIdx, toIdx) {
+  const phases = chart.phases;
+  [phases[fromIdx], phases[toIdx]] = [phases[toIdx], phases[fromIdx]];
+  // Also reorder tasks: group tasks by phase in the new phase order
+  const tasksByPhase = new Map();
+  phases.forEach(p => tasksByPhase.set(p.id, []));
+  // Catch tasks whose phase isn't in the list (shouldn't happen but safe)
+  const orphans = [];
+  chart.tasks.forEach(t => {
+    if (tasksByPhase.has(t.phase)) tasksByPhase.get(t.phase).push(t);
+    else orphans.push(t);
+  });
+  chart.tasks = [];
+  phases.forEach(p => { chart.tasks.push(...tasksByPhase.get(p.id)); });
+  chart.tasks.push(...orphans);
 }
 
 document.getElementById("addPhaseBtn").addEventListener("click", () => {
@@ -773,6 +792,7 @@ async function renderRolesList() {
   }
 
   roles.forEach(r => {
+    const wrapper = document.createElement("div"); wrapper.className = "role-entry";
     const row = document.createElement("div");
     row.className = "phase-row";
     // Avatar placeholder
@@ -813,7 +833,55 @@ async function renderRolesList() {
       });
       row.appendChild(del);
     }
-    body.appendChild(row);
+    wrapper.appendChild(row);
+
+    // Chart access row (not shown for admins — they see everything)
+    if (r.role !== 'admin') {
+      const accessRow = document.createElement("div"); accessRow.className = "chart-access-row";
+      const accessLabel = document.createElement("span"); accessLabel.className = "chart-access-label";
+      accessLabel.textContent = "Charts:";
+      accessRow.appendChild(accessLabel);
+
+      const currentAccess = r.chartAccess || []; // empty = all charts
+      const allChartsOpt = document.createElement("label"); allChartsOpt.className = "chart-access-chip";
+      const allCb = document.createElement("input"); allCb.type = "checkbox";
+      allCb.checked = currentAccess.length === 0;
+      allCb.addEventListener("change", async () => {
+        if (allCb.checked) {
+          await setUserChartAccess(r.email, []);
+          // Uncheck individual boxes
+          accessRow.querySelectorAll('.chart-access-chip input[data-chart-id]').forEach(cb => cb.checked = false);
+        }
+      });
+      const allSpan = document.createElement("span"); allSpan.textContent = "All";
+      allChartsOpt.appendChild(allCb); allChartsOpt.appendChild(allSpan);
+      accessRow.appendChild(allChartsOpt);
+
+      charts.forEach(ch => {
+        const chip = document.createElement("label"); chip.className = "chart-access-chip";
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.dataset.chartId = ch.id;
+        cb.checked = currentAccess.includes(ch.id);
+        cb.addEventListener("change", async () => {
+          // Gather selected chart IDs
+          const selected = [];
+          accessRow.querySelectorAll('input[data-chart-id]:checked').forEach(el => selected.push(el.dataset.chartId));
+          // If none selected or all selected, treat as "all"
+          if (selected.length === 0 || selected.length === charts.length) {
+            await setUserChartAccess(r.email, []);
+            allCb.checked = true;
+          } else {
+            await setUserChartAccess(r.email, selected);
+            allCb.checked = false;
+          }
+        });
+        const sp = document.createElement("span"); sp.textContent = ch.name;
+        chip.appendChild(cb); chip.appendChild(sp);
+        accessRow.appendChild(chip);
+      });
+      wrapper.appendChild(accessRow);
+    }
+
+    body.appendChild(wrapper);
   });
 }
 
@@ -857,15 +925,25 @@ authReady.then(async () => {
   if (getUser()) {
     await seedDefaultIfEmpty(zegoTemplate, uid);
   }
-  subscribeToCharts((updatedCharts) => {
-    charts = updatedCharts;
+  subscribeToCharts(async (updatedCharts) => {
+    // Filter charts by user access (admins see all)
+    if (getUser() && !isAdmin()) {
+      const access = await getUserChartAccess(getUser().email);
+      if (access && access.length > 0) {
+        charts = updatedCharts.filter(c => access.includes(c.id));
+      } else {
+        charts = updatedCharts; // empty = all charts
+      }
+    } else {
+      charts = updatedCharts;
+    }
     if (!activeChartId || !charts.find(c => c.id === activeChartId)) {
       activeChartId = charts[0]?.id || null;
       currentFilter = "all";
     }
     renderAll();
     // If user just signed in and DB is still empty, seed now
-    if (getUser() && charts.length === 0) {
+    if (getUser() && updatedCharts.length === 0) {
       seedDefaultIfEmpty(zegoTemplate, uid);
     }
   });
