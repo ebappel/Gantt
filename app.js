@@ -239,17 +239,28 @@ function renderAuthBar() {
     actionsEl.innerHTML = `<button class="btn btn-sm btn-primary" id="signInBtn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
       Sign in with Google</button>`;
-    document.getElementById("signInBtn").addEventListener("click", () => {
+    document.getElementById("signInBtn").addEventListener("click", async () => {
       const btn = document.getElementById("signInBtn");
-      btn.disabled = true; btn.textContent = "Redirecting to Google...";
-      signIn().catch(e => {
-        console.error("Sign-in error:", e);
+      btn.disabled = true; btn.textContent = "Signing in...";
+      try {
+        await signIn();
+      } catch(e) {
+        console.error("Sign-in error:", e.code, e.message);
         if (e.code === 'auth/unauthorized-domain') {
           alert("This domain is not authorized for sign-in.\n\nGo to Firebase Console → Authentication → Settings → Authorized domains and add:\n" + window.location.hostname);
+        } else if (e.code === 'auth/popup-blocked') {
+          alert("Popup was blocked by your browser. Please allow popups for this site and try again.");
+        } else if (e.code === 'auth/popup-closed-by-user') {
+          // User closed the popup, no alert needed
+        } else {
+          alert("Sign-in failed: " + (e.message || e.code));
         }
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign in with Google';
-      });
+      } finally {
+        if (document.getElementById("signInBtn")) {
+          btn.disabled = false;
+          btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign in with Google';
+        }
+      }
     });
   } else {
     const roleBadge = role === 'admin' ? 'Admin' : role === 'editor' ? 'Editor' : 'Viewer';
