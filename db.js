@@ -7,7 +7,7 @@ import firebaseConfig from './firebase-config.js';
 
 // Firebase SDK (loaded via importmap in index.html)
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInWithPopup, signInAnonymously, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, getDocs, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 // ── Init ──────────────────────────────────────────────────
@@ -168,6 +168,59 @@ async function removeUser(email) {
   await deleteDoc(doc(db, 'roles', email));
 }
 
+// ── Invite Tokens (anonymous viewer access) ──────────────
+let activeToken = null; // Set when viewer accesses via ?token=
+
+async function signInWithToken(tokenId) {
+  // Sign in anonymously so Firestore rules allow reads
+  const snap = await signInAnonymously(auth);
+  // Validate the token
+  const tokenDoc = await getDoc(doc(db, 'invite_tokens', tokenId));
+  if (!tokenDoc.exists() || tokenDoc.data().revoked) {
+    await signOut(auth);
+    return { valid: false };
+  }
+  activeToken = { id: tokenId, ...tokenDoc.data() };
+  userRole = 'viewer';
+  return { valid: true, token: activeToken };
+}
+
+function getActiveToken() { return activeToken; }
+function isTokenViewer() { return !!activeToken; }
+
+async function createInviteToken(label, chartIds) {
+  if (userRole !== 'admin') return null;
+  const id = 'tok-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const tokenData = {
+    label: label || 'Invite Link',
+    chartAccess: chartIds || [], // empty = all charts
+    createdAt: serverTimestamp(),
+    createdBy: currentUser?.email || 'unknown',
+    revoked: false
+  };
+  await setDoc(doc(db, 'invite_tokens', id), tokenData);
+  return id;
+}
+
+async function getAllInviteTokens() {
+  if (userRole !== 'admin') return [];
+  const snap = await getDocs(collection(db, 'invite_tokens'));
+  const tokens = [];
+  snap.forEach(d => tokens.push({ id: d.id, ...d.data() }));
+  tokens.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  return tokens;
+}
+
+async function revokeInviteToken(tokenId) {
+  if (userRole !== 'admin') return;
+  await setDoc(doc(db, 'invite_tokens', tokenId), { revoked: true }, { merge: true });
+}
+
+async function deleteInviteToken(tokenId) {
+  if (userRole !== 'admin') return;
+  await deleteDoc(doc(db, 'invite_tokens', tokenId));
+}
+
 // ── Chart Access (per-user) ───────────────────────────────
 async function getUserChartAccess(email) {
   const roleDoc = await getDoc(doc(db, 'roles', email));
@@ -204,6 +257,13 @@ export {
   removeUser,
   getUserChartAccess,
   setUserChartAccess,
+  signInWithToken,
+  getActiveToken,
+  isTokenViewer,
+  createInviteToken,
+  getAllInviteTokens,
+  revokeInviteToken,
+  deleteInviteToken,
   onAuthUpdate
 };
 

@@ -7,7 +7,9 @@ import {
   authReady, signIn, logOut, getUser, getRole, canEdit, isAdmin,
   subscribeToCharts, saveChart, createChart, deleteChart,
   seedDefaultIfEmpty, getAllRoles, setUserRole, removeUser,
-  setOnAuthUpdate, getUserChartAccess, setUserChartAccess
+  setOnAuthUpdate, getUserChartAccess, setUserChartAccess,
+  signInWithToken, getActiveToken, isTokenViewer,
+  createInviteToken, getAllInviteTokens, revokeInviteToken, deleteInviteToken
 } from './db.js';
 
 let nextId = Date.now();
@@ -234,6 +236,17 @@ function renderAuthBar() {
   const statusEl = document.getElementById("authStatus");
   const actionsEl = document.getElementById("authActions");
 
+  // Token viewer mode (anonymous via invite link)
+  if (isTokenViewer()) {
+    const token = getActiveToken();
+    statusEl.innerHTML = `<span class="auth-hint">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:-2px;margin-right:4px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      Viewing via invite link${token.label ? ' — ' + token.label : ''}</span>`;
+    actionsEl.innerHTML = '';
+    updateEditVisibility();
+    return;
+  }
+
   if (!user) {
     statusEl.innerHTML = `<span class="auth-hint">Sign in to edit and save changes</span>`;
     actionsEl.innerHTML = `<button class="btn btn-sm btn-primary" id="signInBtn">
@@ -274,6 +287,9 @@ function renderAuthBar() {
       btns += `<button class="btn btn-sm btn-outline" id="manageRolesBtn" title="Manage team access">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Team</button>`;
+      btns += `<button class="btn btn-sm btn-outline" id="manageInvitesBtn" title="Manage invite links">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Invite Links</button>`;
     }
     btns += `<button class="btn btn-sm btn-secondary" id="signOutBtn">Sign Out</button>`;
     actionsEl.innerHTML = btns;
@@ -282,6 +298,7 @@ function renderAuthBar() {
     });
     if (isAdmin()) {
       document.getElementById("manageRolesBtn").addEventListener("click", openRolesModal);
+      document.getElementById("manageInvitesBtn").addEventListener("click", openInvitesModal);
     }
   }
 
@@ -919,40 +936,139 @@ document.getElementById("rolesModalClose").addEventListener("click", closeRolesM
 document.getElementById("rolesModalDone").addEventListener("click", closeRolesModal);
 rolesOverlay.addEventListener("click", (e) => { if(e.target===rolesOverlay) closeRolesModal(); });
 
+// ── Invite Links Modal (admin only) ───────────────────────
+const invitesOverlay = document.getElementById("invitesModalOverlay");
+
+function refreshInviteChartScope() {
+  const container = document.getElementById("inviteChartScope");
+  container.innerHTML = '';
+  charts.forEach(ch => {
+    const chip = document.createElement("label"); chip.className = "chart-access-chip";
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.dataset.chartId = ch.id;
+    const sp = document.createElement("span"); sp.textContent = ch.name;
+    chip.appendChild(cb); chip.appendChild(sp);
+    container.appendChild(chip);
+  });
+}
+
+function openInvitesModal() { invitesOverlay.classList.add("open"); refreshInviteChartScope(); renderInvitesList(); }
+function closeInvitesModal() { invitesOverlay.classList.remove("open"); }
+
+async function renderInvitesList() {
+  const body = document.getElementById("invitesBody");
+  body.innerHTML = '<p style="text-align:center;color:var(--color-text-faint);padding:var(--space-4)">Loading...</p>';
+  const tokens = await getAllInviteTokens();
+  body.innerHTML = "";
+
+  if (tokens.length === 0) {
+    body.innerHTML = '<p style="color:var(--color-text-faint); font-size:var(--text-sm); text-align:center; padding:var(--space-4)">No invite links yet. Create one below.</p>';
+    return;
+  }
+
+  tokens.forEach(t => {
+    const row = document.createElement("div"); row.className = "invite-row" + (t.revoked ? " revoked" : "");
+
+    const info = document.createElement("div"); info.className = "invite-info";
+    const label = document.createElement("span"); label.className = "invite-label";
+    label.textContent = t.label || 'Invite Link';
+    info.appendChild(label);
+
+    const meta = document.createElement("span"); meta.className = "invite-meta";
+    const chartScope = (!t.chartAccess || t.chartAccess.length === 0) ? 'All charts' : t.chartAccess.length + ' chart' + (t.chartAccess.length !== 1 ? 's' : '');
+    meta.textContent = chartScope + (t.revoked ? ' • Revoked' : '');
+    info.appendChild(meta);
+    row.appendChild(info);
+
+    const actions = document.createElement("div"); actions.className = "invite-actions";
+
+    if (!t.revoked) {
+      const copyBtn = document.createElement("button"); copyBtn.className = "btn btn-sm btn-outline";
+      copyBtn.textContent = "Copy Link";
+      copyBtn.addEventListener("click", () => {
+        const url = window.location.origin + window.location.pathname + '?token=' + t.id;
+        navigator.clipboard.writeText(url).then(() => {
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => { copyBtn.textContent = "Copy Link"; }, 2000);
+        });
+      });
+      actions.appendChild(copyBtn);
+
+      const revokeBtn = document.createElement("button"); revokeBtn.className = "btn btn-sm btn-danger-outline";
+      revokeBtn.textContent = "Revoke";
+      revokeBtn.addEventListener("click", async () => {
+        await revokeInviteToken(t.id);
+        await renderInvitesList();
+      });
+      actions.appendChild(revokeBtn);
+    } else {
+      const delBtn = document.createElement("button"); delBtn.className = "btn btn-sm btn-danger-outline";
+      delBtn.textContent = "Delete";
+      delBtn.addEventListener("click", async () => {
+        await deleteInviteToken(t.id);
+        await renderInvitesList();
+      });
+      actions.appendChild(delBtn);
+    }
+
+    row.appendChild(actions);
+    body.appendChild(row);
+  });
+}
+
+document.getElementById("createInviteBtn").addEventListener("click", async () => {
+  const labelInput = document.getElementById("inviteLabelInput");
+  const label = labelInput.value.trim() || 'Invite Link';
+
+  // Gather selected chart scopes
+  const chartCheckboxes = document.querySelectorAll('#inviteChartScope input[data-chart-id]:checked');
+  const chartIds = [];
+  chartCheckboxes.forEach(cb => chartIds.push(cb.dataset.chartId));
+
+  const tokenId = await createInviteToken(label, chartIds);
+  if (tokenId) {
+    labelInput.value = "";
+    await renderInvitesList();
+    // Auto-copy the new link
+    const url = window.location.origin + window.location.pathname + '?token=' + tokenId;
+    try { await navigator.clipboard.writeText(url); } catch(e) {}
+  }
+});
+
+document.getElementById("invitesModalClose").addEventListener("click", closeInvitesModal);
+document.getElementById("invitesModalDone").addEventListener("click", closeInvitesModal);
+invitesOverlay.addEventListener("click", (e) => { if(e.target===invitesOverlay) closeInvitesModal(); });
+
 // ── Escape key ─────────────────────────────────────────────
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") { closeTaskModal(); closePhaseManager(); closeChartModal(); closeRolesModal(); }
+  if (e.key === "Escape") { closeTaskModal(); closePhaseManager(); closeChartModal(); closeRolesModal(); closeInvitesModal(); }
 });
 
 // ── Theme Toggle ───────────────────────────────────────────
 (function(){const t=document.querySelector("[data-theme-toggle]"),r=document.documentElement;let d=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";r.setAttribute("data-theme",d);upd();t&&t.addEventListener("click",()=>{d=d==="dark"?"light":"dark";r.setAttribute("data-theme",d);upd();if(C())renderGantt();});function upd(){if(!t)return;t.innerHTML=d==="dark"?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>':'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';}})();
 
 // ── Init ───────────────────────────────────────────────────
-setOnAuthUpdate(async (user, role) => {
-  renderAuthBar();
-  // Re-render to show/hide edit controls
-  if (charts.length > 0) renderAll();
-  // If user just signed in and DB is empty, seed default data
-  if (user && charts.length === 0) {
-    await seedDefaultIfEmpty(zegoTemplate, uid);
-  }
-});
 
-// Wait for auth, then seed data + subscribe
-authReady.then(async () => {
-  renderAuthBar();
-  // Only seed if signed in (needs write permission)
-  if (getUser()) {
-    await seedDefaultIfEmpty(zegoTemplate, uid);
-  }
+// Check for invite token in URL
+const urlParams = new URLSearchParams(window.location.search);
+const tokenParam = urlParams.get('token');
+
+function startChartSubscription() {
   subscribeToCharts(async (updatedCharts) => {
-    // Filter charts by user access (admins see all)
-    if (getUser() && !isAdmin()) {
+    // Token viewer: filter by token's chart access
+    if (isTokenViewer()) {
+      const token = getActiveToken();
+      if (token.chartAccess && token.chartAccess.length > 0) {
+        charts = updatedCharts.filter(c => token.chartAccess.includes(c.id));
+      } else {
+        charts = updatedCharts;
+      }
+    // Signed-in non-admin: filter by user chart access
+    } else if (getUser() && !isAdmin()) {
       const access = await getUserChartAccess(getUser().email);
       if (access && access.length > 0) {
         charts = updatedCharts.filter(c => access.includes(c.id));
       } else {
-        charts = updatedCharts; // empty = all charts
+        charts = updatedCharts;
       }
     } else {
       charts = updatedCharts;
@@ -962,9 +1078,39 @@ authReady.then(async () => {
       currentFilter = "all";
     }
     renderAll();
-    // If user just signed in and DB is still empty, seed now
-    if (getUser() && updatedCharts.length === 0) {
+    if (getUser() && !isTokenViewer() && updatedCharts.length === 0) {
       seedDefaultIfEmpty(zegoTemplate, uid);
     }
   });
-});
+}
+
+if (tokenParam) {
+  // Invite link flow — skip normal auth, sign in anonymously
+  (async () => {
+    const result = await signInWithToken(tokenParam);
+    if (result.valid) {
+      renderAuthBar();
+      startChartSubscription();
+    } else {
+      document.getElementById("authStatus").innerHTML = '<span class="auth-hint" style="color:var(--color-danger)">This invite link is invalid or has been revoked.</span>';
+      document.getElementById("authActions").innerHTML = `<a href="${window.location.pathname}" class="btn btn-sm btn-primary">Go to Sign In</a>`;
+    }
+  })();
+} else {
+  // Normal auth flow
+  setOnAuthUpdate(async (user, role) => {
+    renderAuthBar();
+    if (charts.length > 0) renderAll();
+    if (user && charts.length === 0) {
+      await seedDefaultIfEmpty(zegoTemplate, uid);
+    }
+  });
+
+  authReady.then(async () => {
+    renderAuthBar();
+    if (getUser()) {
+      await seedDefaultIfEmpty(zegoTemplate, uid);
+    }
+    startChartSubscription();
+  });
+}

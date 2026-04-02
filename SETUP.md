@@ -37,7 +37,9 @@ const firebaseConfig = {
 6. Open `firebase-config.js` in your repo and replace the placeholder values with your real config values
 7. Commit and push to GitHub
 
-## Step 3: Enable Google Authentication
+## Step 3: Enable Authentication
+
+### Google Sign-In (for admins and editors)
 
 1. In the Firebase Console, go to **Build → Authentication**
 2. Click **Get started**
@@ -45,6 +47,15 @@ const firebaseConfig = {
 4. Toggle **Enable** on
 5. Select your email as the **Project support email**
 6. Click **Save**
+
+### Anonymous Sign-In (for invite link viewers)
+
+1. Still in **Authentication → Sign-in method**
+2. Click **Anonymous**
+3. Toggle **Enable** on
+4. Click **Save**
+
+This allows people with invite links to view charts without needing a Google account.
 
 ### Add your GitHub Pages domain
 
@@ -71,18 +82,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Charts — anyone signed in can read, editors/admins can write
+    // Charts — anyone signed in (including anonymous) can read; editors/admins can write
     match /charts/{chartId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null &&
+        request.auth.token.email != null &&
         exists(/databases/$(database)/documents/roles/$(request.auth.token.email)) &&
         get(/databases/$(database)/documents/roles/$(request.auth.token.email)).data.role in ['admin', 'editor'];
     }
 
-    // Roles — only admins can read/write
+    // Invite tokens — anyone signed in can read (to validate); admins can write
+    match /invite_tokens/{tokenId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        request.auth.token.email != null &&
+        exists(/databases/$(database)/documents/roles/$(request.auth.token.email)) &&
+        get(/databases/$(database)/documents/roles/$(request.auth.token.email)).data.role == 'admin';
+    }
+
+    // Roles — anyone signed in can read; admins (or first user) can write
     match /roles/{email} {
       allow read: if request.auth != null;
       allow write: if request.auth != null &&
+        request.auth.token.email != null &&
         (
           // Allow first user to create their own admin role
           !exists(/databases/$(database)/documents/roles/$(request.auth.token.email)) &&
@@ -126,6 +148,15 @@ service cloud.firestore {
 - Admins manage roles via the **"Team"** button in the auth bar
 - Add team members by typing their Google email and selecting Editor or Viewer
 - Team members must sign in with the Google account matching the email you added
+- Admins can restrict which charts each user can see from the Team modal
+
+### Invite Links (No Account Required)
+- Admins can create invite links via the **"Invite Links"** button
+- Share the link with anyone — they can view charts without signing in
+- Each link can be scoped to specific charts or grant access to all charts
+- Links can be revoked anytime — revoked links show an error message
+- Invite link viewers get read-only access (no editing capabilities)
+- Requires Anonymous Authentication to be enabled in Firebase (see Step 3)
 
 ---
 

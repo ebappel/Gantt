@@ -271,6 +271,33 @@
   </div>
 </div>
 
+<!-- ===== Invite Links Modal (Admin only) ===== -->
+<div class="modal-overlay" id="invitesModalOverlay">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h2>Invite Links</h2>
+      <button class="modal-close" id="invitesModalClose" aria-label="Close">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <p class="invite-desc">Create shareable links so people can view charts without signing in. Each link can be scoped to specific charts and revoked anytime.</p>
+    <div class="invites-body" id="invitesBody"></div>
+    <div class="invite-create-row">
+      <input type="text" id="inviteLabelInput" placeholder="Link label (e.g. Engineering Team)" class="phase-input">
+      <button class="btn btn-primary btn-sm" id="createInviteBtn">Create Link</button>
+    </div>
+    <div class="invite-scope-row">
+      <span class="chart-access-label">Limit to charts:</span>
+      <span class="invite-scope-hint">(leave unchecked for all charts)</span>
+      <div id="inviteChartScope" class="invite-chart-scope"></div>
+    </div>
+    <div class="modal-actions" style="border-top:1px solid var(--color-divider); margin-top:var(--space-3); padding-top:var(--space-4); padding-left:var(--space-5); padding-right:var(--space-5); padding-bottom:var(--space-4)">
+      <div></div>
+      <button class="btn btn-secondary" id="invitesModalDone">Done</button>
+    </div>
+  </div>
+</div>
+
 <footer>
   <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
 </footer>
