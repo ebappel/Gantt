@@ -1098,19 +1098,34 @@ if (tokenParam) {
   })();
 } else {
   // Normal auth flow
+  let subscriptionStarted = false;
+
   setOnAuthUpdate(async (user, role) => {
     renderAuthBar();
-    if (charts.length > 0) renderAll();
-    if (user && charts.length === 0) {
+    if (user && !subscriptionStarted) {
+      // User just signed in — start subscription now
+      subscriptionStarted = true;
       await seedDefaultIfEmpty(zegoTemplate, uid);
+      startChartSubscription();
+    } else if (!user) {
+      // User signed out — clear charts and stop subscription
+      subscriptionStarted = false;
+      charts = [];
+      activeChartId = null;
+      renderAll();
+    } else if (charts.length > 0) {
+      renderAll();
     }
   });
 
   authReady.then(async () => {
     renderAuthBar();
     if (getUser()) {
+      // Already signed in on page load
+      subscriptionStarted = true;
       await seedDefaultIfEmpty(zegoTemplate, uid);
+      startChartSubscription();
     }
-    startChartSubscription();
+    // If not signed in, do nothing — wait for sign-in via setOnAuthUpdate
   });
 }
