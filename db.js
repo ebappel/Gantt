@@ -30,7 +30,7 @@ let onAuthUpdate = null;
 // ── Auth ──────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
-  if (user) {
+  if (user && user.email) {   // ← FIXED: only load role if user has an email (not anonymous)
     await loadUserRole(user);
   } else {
     userRole = 'viewer';
@@ -40,6 +40,10 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 async function loadUserRole(user) {
+  if (!user.email) {          // ← FIXED: guard against null email crashing Firestore path
+    userRole = 'viewer';
+    return;
+  }
   const roleDoc = await getDoc(doc(db, 'roles', user.email));
   if (roleDoc.exists()) {
     userRole = roleDoc.data().role;
